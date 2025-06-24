@@ -1,0 +1,1440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG Vector Embedding Visualization - Interactive Guide</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        /* ===============================
+           GLOBAL STYLES
+           =============================== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 50%, #16213e 100%);
+            color: white;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        /* ===============================
+           LAYOUT COMPONENTS
+           =============================== */
+        #container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        .panel {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        /* ===============================
+           CONTROL PANELS
+           =============================== */
+        #controls {
+            top: 20px;
+            left: 20px;
+            width: 300px;
+            z-index: 100;
+        }
+
+        #step-guide {
+            top: 20px;
+            right: 20px;
+            width: 350px;
+            z-index: 100;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+        }
+
+        #info-panel {
+            bottom: 20px;
+            left: 20px;
+            width: 400px;
+            z-index: 100;
+        }
+
+        #keyword-panel {
+            bottom: 20px;
+            right: 20px;
+            width: 250px;
+            z-index: 100;
+        }
+
+        /* ===============================
+           UI COMPONENTS
+           =============================== */
+        .panel-header {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #667eea;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .button {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border: none;
+            color: white;
+            padding: 12px 20px;
+            margin: 5px 0;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            width: 100%;
+            font-size: 14px;
+        }
+
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .button:disabled {
+            background: #444;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .input-group {
+            margin: 15px 0;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+            color: #ccc;
+        }
+
+        .input-group input {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            width: 100%;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 10px rgba(102, 126, 234, 0.3);
+        }
+
+        .input-group input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        /* ===============================
+           STEP GUIDE STYLES
+           =============================== */
+        .step {
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+            transition: all 0.3s ease;
+        }
+
+        .step.active {
+            background: rgba(102, 126, 234, 0.2);
+            border-left-color: #ffd700;
+            box-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .step.completed {
+            background: rgba(76, 175, 80, 0.1);
+            border-left-color: #4caf50;
+        }
+
+        .step-number {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 25px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        .step.active .step-number {
+            background: #ffd700;
+            color: #000;
+        }
+
+        .step.completed .step-number {
+            background: #4caf50;
+        }
+
+        .step-title {
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #fff;
+        }
+
+        .step-description {
+            font-size: 13px;
+            line-height: 1.4;
+            color: #ccc;
+        }
+
+        /* ===============================
+           KEYWORD DISPLAY
+           =============================== */
+        .word-tag {
+            display: inline-block;
+            background: rgba(102, 126, 234, 0.3);
+            padding: 6px 12px;
+            margin: 3px;
+            border-radius: 15px;
+            font-size: 11px;
+            border: 1px solid rgba(102, 126, 234, 0.5);
+            transition: all 0.3s ease;
+        }
+
+        .word-tag.active {
+            background: rgba(255, 215, 0, 0.3);
+            border-color: #ffd700;
+            color: #ffd700;
+        }
+
+        /* ===============================
+           STATUS INDICATORS
+           =============================== */
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 10px 0;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #666;
+            transition: all 0.3s ease;
+        }
+
+        .status-dot.active {
+            background: #ffd700;
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+
+        .status-dot.completed {
+            background: #4caf50;
+        }
+
+        /* ===============================
+           ANIMATIONS
+           =============================== */
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 0 5px rgba(102, 126, 234, 0.5); }
+            50% { box-shadow: 0 0 20px rgba(102, 126, 234, 1), 0 0 30px rgba(118, 75, 162, 0.5); }
+        }
+
+        .pulse { animation: pulse 2s infinite; }
+        .glow { animation: glow 2s infinite; }
+
+        /* ===============================
+           FOOTER STYLES
+           =============================== */
+        #footer {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 50;
+            text-align: center;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        #footer a {
+            color: #667eea;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        #footer a:hover {
+            color: #ffd700;
+        }
+
+        /* ===============================
+           RESPONSIVE DESIGN
+           =============================== */
+        @media (max-width: 1200px) {
+            #step-guide {
+                width: 280px;
+            }
+            
+            #controls {
+                width: 250px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .panel {
+                position: relative;
+                width: 90%;
+                margin: 10px auto;
+            }
+            
+            #container {
+                overflow-y: auto;
+            }
+            
+            #step-guide {
+                position: relative;
+                top: auto;
+                right: auto;
+                max-height: none;
+            }
+        }
+
+        /* ===============================
+           SCROLLBAR STYLING
+           =============================== */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(102, 126, 234, 0.5);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(102, 126, 234, 0.7);
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <!-- MAIN CONTROLS PANEL -->
+        <div id="controls" class="panel">
+            <div class="panel-header">
+                🎬 RAG Controls
+            </div>
+            
+            <div class="input-group">
+                <label for="queryInput">Enter Your Query:</label>
+                <input type="text" id="queryInput" placeholder="e.g., machine learning algorithms" value="machine learning algorithms">
+            </div>
+            
+            <button class="button" id="startDemo" onclick="startRagDemo()">
+                🚀 Start RAG Demonstration
+            </button>
+            
+            <button class="button" onclick="resetVisualization()">
+                🔄 Reset Scene
+            </button>
+            
+            <button class="button" onclick="toggleAutoRotate()">
+                🔄 Toggle Auto-Rotate
+            </button>
+            
+            <button class="button" onclick="toggleTextLabels()">
+                📝 Toggle Text Labels
+            </button>
+            
+            <button class="button" onclick="nextStep()">
+                ⏭️ Next Step
+            </button>
+            
+            <div class="status-indicator">
+                <div class="status-dot" id="systemStatus"></div>
+                <span id="systemStatusText">Ready to start</span>
+            </div>
+        </div>
+
+        <!-- STEP-BY-STEP GUIDE PANEL -->
+        <div id="step-guide" class="panel">
+            <div class="panel-header">
+                📚 RAG Process Guide
+            </div>
+            
+            <div class="step" id="step-0">
+                <div class="step-title">
+                    <span class="step-number">1</span>
+                    Document Knowledge Base
+                </div>
+                <div class="step-description">
+                    Documents are pre-processed and converted into vector embeddings. Each sphere represents a document in high-dimensional semantic space.
+                </div>
+            </div>
+            
+            <div class="step" id="step-1">
+                <div class="step-title">
+                    <span class="step-number">2</span>
+                    Query Embedding
+                </div>
+                <div class="step-description">
+                    Your query gets converted into the same vector space using the same embedding model. The golden octahedron shows your query's position.
+                </div>
+            </div>
+            
+            <div class="step" id="step-2">
+                <div class="step-title">
+                    <span class="step-number">3</span>
+                    Similarity Search
+                </div>
+                <div class="step-description">
+                    The system calculates cosine similarity between your query vector and all document vectors to find the most relevant matches.
+                </div>
+            </div>
+            
+            <div class="step" id="step-3">
+                <div class="step-title">
+                    <span class="step-number">4</span>
+                    Document Retrieval
+                </div>
+                <div class="step-description">
+                    Top-K most similar documents are retrieved based on similarity scores. Watch as the most relevant documents light up and scale.
+                </div>
+            </div>
+            
+            <div class="step" id="step-4">
+                <div class="step-title">
+                    <span class="step-number">5</span>
+                    Context Assembly
+                </div>
+                <div class="step-description">
+                    Retrieved documents are connected to your query with visual lines, showing the relationship strength and preparing context for the LLM.
+                </div>
+            </div>
+            
+            <div class="step" id="step-5">
+                <div class="step-title">
+                    <span class="step-number">6</span>
+                    LLM Generation
+                </div>
+                <div class="step-description">
+                    The Language Model uses retrieved documents as context to generate accurate, grounded responses to your query.
+                </div>
+            </div>
+            
+            <div style="margin-top: 20px; padding: 15px; background: rgba(255, 215, 0, 0.1); border-radius: 10px; border: 1px solid rgba(255, 215, 0, 0.3);">
+                <strong>💡 Pro Tip:</strong> Try different queries like "deep neural networks", "image recognition", or "data analysis" to see how the vector space responds differently!
+            </div>
+        </div>
+
+        <!-- INFORMATION PANEL -->
+        <div id="info-panel" class="panel">
+            <div class="panel-header">
+                🧠 Current Process
+            </div>
+            <p id="infoText">
+                Welcome to the RAG Vector Embedding Visualization! Documents exist as points in high-dimensional semantic space. Similar content naturally clusters together. Start the demo to see how your query navigates to find relevant information.
+            </p>
+            
+            <div id="similarityScores" style="margin-top: 15px; display: none;">
+                <strong>📊 Similarity Scores:</strong>
+                <div id="scoresList"></div>
+            </div>
+        </div>
+
+        <!-- KEYWORD PANEL -->
+        <div id="keyword-panel" class="panel">
+            <div class="panel-header">
+                🏷️ Active Keywords
+            </div>
+            <div id="keywordTags">
+                <div style="color: #888; font-style: italic; font-size: 12px;">
+                    Keywords will appear here during the demo...
+                </div>
+            </div>
+        </div>
+
+        <!-- FOOTER -->
+        <div id="footer">
+            © 2025 Himanshu Joshi | 
+            <a href="https://github.com/himanshujoshi" target="_blank">GitHub</a> | 
+            RAG Vector Visualization
+        </div>
+    </div>
+
+    <script>
+        // ===============================
+        // GLOBAL CONFIGURATION
+        // ===============================
+        const CONFIG = {
+            camera: {
+                position: { x: 8, y: 5, z: 8 },
+                fov: 75,
+                near: 0.1,
+                far: 1000
+            },
+            animation: {
+                duration: 1500,
+                stepDelay: 2000
+            },
+            colors: {
+                background: 0x0a0a0a,
+                query: 0xffd700,
+                highlight: 0x333333,
+                connections: [0xff6b6b, 0x4ecdc4, 0x45b7d1]
+            }
+        };
+
+        // ===============================
+        // SCENE VARIABLES
+        // ===============================
+        let scene, camera, renderer;
+        let documents = [];
+        let queryPoint = null;
+        let connectionLines = [];
+        let currentStep = 0;
+        let isAutoRotating = false;
+        let showTextLabels = true;
+        let demoRunning = false;
+
+        // ===============================
+        // DOCUMENT DATA
+        // ===============================
+        const DOCUMENT_DATA = [
+            { 
+                title: "Machine Learning Basics", 
+                content: "Fundamental concepts of AI and machine learning", 
+                keywords: ["machine", "learning", "AI", "algorithms", "training", "data", "models"],
+                color: 0xff6b6b, 
+                position: [2, 1, 3] 
+            },
+            { 
+                title: "Deep Learning Networks", 
+                content: "Neural networks and deep learning architectures", 
+                keywords: ["deep", "neural", "networks", "layers", "backprop", "GPU", "training"],
+                color: 0x4ecdc4, 
+                position: [1, 3, 2] 
+            },
+            { 
+                title: "Natural Language Processing", 
+                content: "Text processing and language understanding", 
+                keywords: ["NLP", "text", "language", "sentiment", "tokenization", "BERT", "transformers"],
+                color: 0x45b7d1, 
+                position: [3, 2, 1] 
+            },
+            { 
+                title: "Computer Vision", 
+                content: "Image processing and visual recognition", 
+                keywords: ["vision", "image", "CNN", "detection", "recognition", "pixels", "opencv"],
+                color: 0x96ceb4, 
+                position: [-1, 2, 3] 
+            },
+            { 
+                title: "Data Science", 
+                content: "Statistical analysis and data insights", 
+                keywords: ["data", "statistics", "analysis", "pandas", "visualization", "insights", "science"],
+                color: 0xfeca57, 
+                position: [2, -1, 2] 
+            },
+            { 
+                title: "Algorithm Design", 
+                content: "Optimization and algorithmic thinking", 
+                keywords: ["algorithms", "optimization", "complexity", "sorting", "search", "efficiency", "design"],
+                color: 0xff9ff3, 
+                position: [-2, 1, -1] 
+            },
+            { 
+                title: "Database Systems", 
+                content: "Data storage and retrieval systems", 
+                keywords: ["database", "SQL", "storage", "queries", "indexing", "ACID", "NoSQL"],
+                color: 0x54a0ff, 
+                position: [1, -2, -2] 
+            },
+            { 
+                title: "Software Engineering", 
+                content: "Development practices and methodologies", 
+                keywords: ["software", "engineering", "code", "testing", "deployment", "agile", "devops"],
+                color: 0x5f27cd, 
+                position: [-1, -1, 3] 
+            }
+        ];
+
+        // ===============================
+        // INITIALIZATION FUNCTIONS
+        // ===============================
+        function initializeScene() {
+            // Scene setup
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(CONFIG.colors.background);
+            
+            // Camera setup
+            camera = new THREE.PerspectiveCamera(
+                CONFIG.camera.fov, 
+                window.innerWidth / window.innerHeight, 
+                CONFIG.camera.near, 
+                CONFIG.camera.far
+            );
+            camera.position.set(CONFIG.camera.position.x, CONFIG.camera.position.y, CONFIG.camera.position.z);
+            
+            // Renderer setup
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            document.getElementById('container').appendChild(renderer.domElement);
+            
+            setupLighting();
+            createDocumentVisualization();
+            createEnvironment();
+            setupControls();
+            updateSystemStatus('Ready', 'active');
+            
+            // Start render loop
+            animate();
+        }
+
+        function setupLighting() {
+            // Ambient lighting
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.4);
+            scene.add(ambientLight);
+            
+            // Directional lighting
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(10, 10, 5);
+            directionalLight.castShadow = true;
+            directionalLight.shadow.mapSize.width = 2048;
+            directionalLight.shadow.mapSize.height = 2048;
+            scene.add(directionalLight);
+            
+            // Accent lighting
+            const pointLight1 = new THREE.PointLight(0x667eea, 0.6, 15);
+            pointLight1.position.set(5, 5, 5);
+            scene.add(pointLight1);
+            
+            const pointLight2 = new THREE.PointLight(0x764ba2, 0.6, 15);
+            pointLight2.position.set(-5, -5, -5);
+            scene.add(pointLight2);
+        }
+
+        function createEnvironment() {
+            // Grid helper
+            const gridHelper = new THREE.GridHelper(12, 12, 0x333333, 0x222222);
+            gridHelper.position.y = -3;
+            scene.add(gridHelper);
+            
+            // Coordinate axes
+            const axesHelper = new THREE.AxesHelper(5);
+            axesHelper.position.set(0, -2.8, 0);
+            scene.add(axesHelper);
+        }
+
+        // ===============================
+        // DOCUMENT VISUALIZATION
+        // ===============================
+        function createDocumentVisualization() {
+            DOCUMENT_DATA.forEach((docData, index) => {
+                const documentGroup = createDocumentGroup(docData, index);
+                documents.push(documentGroup);
+                scene.add(documentGroup.group);
+            });
+            
+            updateKeywordDisplay();
+        }
+
+        function createDocumentGroup(docData, index) {
+            const group = new THREE.Group();
+            
+            // Main sphere
+            const geometry = new THREE.SphereGeometry(0.3, 16, 16);
+            const material = new THREE.MeshPhongMaterial({
+                color: docData.color,
+                shininess: 100,
+                transparent: true,
+                opacity: 0.8
+            });
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.position.set(...docData.position);
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            
+            // Glow effect
+            const glowGeometry = new THREE.SphereGeometry(0.35, 16, 16);
+            const glowMaterial = new THREE.MeshBasicMaterial({
+                color: docData.color,
+                transparent: true,
+                opacity: 0.2
+            });
+            const glowMesh = new THREE.Mesh(glowGeometry, glowMaterial);
+            glowMesh.position.copy(mesh.position);
+            
+            // Text label
+            const titleSprite = createTextSprite(docData.title, docData.color, 24);
+            titleSprite.position.set(docData.position[0], docData.position[1] + 0.8, docData.position[2]);
+            
+            // Keyword cloud
+            const keywordGroup = createKeywordGroup(docData);
+            keywordGroup.position.set(...docData.position);
+            
+            group.add(mesh);
+            group.add(glowMesh);
+            group.add(titleSprite);
+            group.add(keywordGroup);
+            
+            // Animation
+            setupDocumentAnimation(group, index);
+            
+            return {
+                group,
+                mesh,
+                glowMesh,
+                titleSprite,
+                keywordGroup,
+                data: docData,
+                similarity: 0
+            };
+        }
+
+        function createKeywordGroup(docData) {
+            const group = new THREE.Group();
+            
+            docData.keywords.forEach((keyword, index) => {
+                const sprite = createTextSprite(keyword, docData.color, 16);
+                const angle = (index / docData.keywords.length) * Math.PI * 2;
+                const radius = 1.2;
+                
+                sprite.position.set(
+                    Math.cos(angle) * radius,
+                    Math.sin(index * 0.5) * 0.3,
+                    Math.sin(angle) * radius
+                );
+                
+                group.add(sprite);
+            });
+            
+            return group;
+        }
+
+        function setupDocumentAnimation(group, index) {
+            const originalPosition = group.position.clone();
+            
+            function animateDocument() {
+                const time = Date.now() * 0.001;
+                const offset = Math.sin(time + index) * 0.05;
+                
+                group.position.y = originalPosition.y + offset;
+                group.rotation.y += 0.005;
+                
+                // Animate keywords
+                const keywordGroup = group.children[3]; // keywordGroup is 4th child
+                if (keywordGroup) {
+                    keywordGroup.rotation.y += 0.003;
+                }
+                
+                requestAnimationFrame(animateDocument);
+            }
+            
+            animateDocument();
+        }
+
+        // ===============================
+        // TEXT RENDERING
+        // ===============================
+        function createTextSprite(text, color = 0xffffff, size = 24) {
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            
+            // High-resolution canvas for crisp text
+            const pixelRatio = window.devicePixelRatio || 1;
+            const scaledSize = size * pixelRatio;
+            
+            // Calculate optimal canvas size
+            const padding = scaledSize * 0.5;
+            canvas.width = Math.max(1024, text.length * scaledSize * 0.8) + padding * 2;
+            canvas.height = scaledSize * 2.5 + padding * 2;
+            
+            // Scale context for high DPI
+            context.scale(pixelRatio, pixelRatio);
+            
+            // Enable text smoothing
+            context.textRenderingOptimization = 'optimizeQuality';
+            context.imageSmoothingEnabled = true;
+            context.imageSmoothingQuality = 'high';
+            
+            // Clear background for transparency
+            context.clearRect(0, 0, canvas.width / pixelRatio, canvas.height / pixelRatio);
+            
+            // Text styling with better readability
+            const colorHex = `#${color.toString(16).padStart(6, '0')}`;
+            context.font = `bold ${size}px 'Segoe UI', 'Roboto', 'Arial', sans-serif`;
+            context.textAlign = 'center';
+            context.textBaseline = 'middle';
+            
+            // Create text outline for better contrast
+            context.lineWidth = size * 0.15;
+            context.strokeStyle = 'rgba(0, 0, 0, 0.8)';
+            context.fillStyle = colorHex;
+            
+            // Add stronger glow effect
+            context.shadowColor = colorHex;
+            context.shadowBlur = size * 0.4;
+            context.shadowOffsetX = 0;
+            context.shadowOffsetY = 0;
+            
+            const centerX = (canvas.width / pixelRatio) / 2;
+            const centerY = (canvas.height / pixelRatio) / 2;
+            
+            // Draw text with outline and glow
+            context.strokeText(text, centerX, centerY);
+            context.fillText(text, centerX, centerY);
+            
+            // Add additional inner glow
+            context.shadowBlur = size * 0.1;
+            context.fillText(text, centerX, centerY);
+            
+            // Create high-quality texture
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.needsUpdate = true;
+            texture.generateMipmaps = false;
+            texture.minFilter = THREE.LinearFilter;
+            texture.magFilter = THREE.LinearFilter;
+            texture.format = THREE.RGBAFormat;
+            
+            const material = new THREE.SpriteMaterial({ 
+                map: texture, 
+                transparent: true,
+                alphaTest: 0.01,
+                depthWrite: false,
+                depthTest: true
+            });
+            
+            const sprite = new THREE.Sprite(material);
+            
+            // Scale sprite appropriately for readability
+            const scaleX = (canvas.width / pixelRatio) / 512;
+            const scaleY = (canvas.height / pixelRatio) / 512;
+            sprite.scale.set(scaleX * 2, scaleY * 2, 1);
+            
+            return sprite;
+        }
+
+        // ===============================
+        // RAG DEMONSTRATION FUNCTIONS
+        // ===============================
+        function startRagDemo() {
+            if (demoRunning) return;
+            
+            demoRunning = true;
+            currentStep = 0;
+            
+            const startButton = document.getElementById('startDemo');
+            startButton.disabled = true;
+            startButton.textContent = '⏳ Demo Running...';
+            
+            resetVisualization();
+            setActiveStep(0);
+            updateSystemStatus('Initializing RAG Process...', 'active');
+            
+            setTimeout(() => executeRagStep(1), 1000);
+        }
+
+        function executeRagStep(step) {
+            setActiveStep(step);
+            
+            switch(step) {
+                case 1:
+                    stepQueryEmbedding();
+                    break;
+                case 2:
+                    stepSimilaritySearch();
+                    break;
+                case 3:
+                    stepDocumentRetrieval();
+                    break;
+                case 4:
+                    stepContextAssembly();
+                    break;
+                case 5:
+                    stepLlmGeneration();
+                    break;
+                default:
+                    completeDemonstration();
+            }
+        }
+
+        function stepQueryEmbedding() {
+            const query = document.getElementById('queryInput').value;
+            updateSystemStatus('Converting query to vector embedding...', 'active');
+            updateInfoPanel('Your query is being processed through the same embedding model used for documents. Watch as it appears in the semantic space!');
+            
+            setTimeout(() => {
+                createQueryVisualization(query);
+                updateSystemStatus('Query embedded successfully', 'completed');
+                setTimeout(() => executeRagStep(2), CONFIG.animation.stepDelay);
+            }, CONFIG.animation.duration);
+        }
+
+        function stepSimilaritySearch() {
+            updateSystemStatus('Calculating similarity scores...', 'active');
+            updateInfoPanel('Computing cosine similarity between query vector and all document vectors. This determines semantic relevance.');
+            
+            setTimeout(() => {
+                calculateDocumentSimilarities();
+                updateSystemStatus('Similarity calculation complete', 'completed');
+                setTimeout(() => executeRagStep(3), CONFIG.animation.stepDelay);
+            }, CONFIG.animation.duration);
+        }
+
+        function stepDocumentRetrieval() {
+            updateSystemStatus('Retrieving top-K documents...', 'active');
+            updateInfoPanel('Selecting the most relevant documents based on similarity scores. Watch as they light up and scale!');
+            
+            setTimeout(() => {
+                highlightRelevantDocuments();
+                displaySimilarityScores();
+                updateSystemStatus('Documents retrieved successfully', 'completed');
+                setTimeout(() => executeRagStep(4), CONFIG.animation.stepDelay);
+            }, CONFIG.animation.duration);
+        }
+
+        function stepContextAssembly() {
+            updateSystemStatus('Assembling context for LLM...', 'active');
+            updateInfoPanel('Creating connections between query and retrieved documents. These form the context that will be sent to the language model.');
+            
+            setTimeout(() => {
+                createConnectionVisualization();
+                updateSystemStatus('Context assembled', 'completed');
+                setTimeout(() => executeRagStep(5), CONFIG.animation.stepDelay);
+            }, CONFIG.animation.duration);
+        }
+
+        function stepLlmGeneration() {
+            updateSystemStatus('LLM generating response...', 'active');
+            updateInfoPanel('The language model uses retrieved documents as context to generate accurate, grounded responses. The RAG process ensures factual accuracy by grounding the response in your knowledge base.');
+            
+            setTimeout(() => {
+                updateSystemStatus('Response generated successfully', 'completed');
+                setTimeout(() => completeDemonstration(), CONFIG.animation.stepDelay);
+            }, CONFIG.animation.duration);
+        }
+
+        function completeDemonstration() {
+            setActiveStep(-1); // Mark all as completed
+            updateSystemStatus('RAG demonstration complete!', 'completed');
+            updateInfoPanel('🎉 RAG process completed! Your query has successfully retrieved relevant documents and assembled context for accurate response generation. Try a different query to see how the vector space responds!');
+            
+            const startButton = document.getElementById('startDemo');
+            startButton.disabled = false;
+            startButton.textContent = '🚀 Start RAG Demonstration';
+            demoRunning = false;
+        }
+
+        // ===============================
+        // QUERY PROCESSING
+        // ===============================
+        function createQueryVisualization(query) {
+            removeQueryVisualization();
+            
+            const position = calculateQueryPosition(query);
+            
+            // Create query geometry
+            const geometry = new THREE.OctahedronGeometry(0.4);
+            const material = new THREE.MeshPhongMaterial({
+                color: CONFIG.colors.query,
+                shininess: 100,
+                transparent: true,
+                opacity: 0.9,
+                emissive: new THREE.Color(0x111100)
+            });
+            
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.position.set(...position);
+            mesh.castShadow = true;
+            
+            // Glow effect
+            const glowGeometry = new THREE.OctahedronGeometry(0.5);
+            const glowMaterial = new THREE.MeshBasicMaterial({
+                color: CONFIG.colors.query,
+                transparent: true,
+                opacity: 0.3
+            });
+            const glowMesh = new THREE.Mesh(glowGeometry, glowMaterial);
+            glowMesh.position.copy(mesh.position);
+            
+            // Query text
+            const textSprite = createTextSprite(`"${query}"`, CONFIG.colors.query, 28);
+            textSprite.position.set(position[0], position[1] + 1, position[2]);
+            
+            scene.add(mesh);
+            scene.add(glowMesh);
+            scene.add(textSprite);
+            
+            queryPoint = { mesh, glowMesh, textSprite, position };
+            
+            // Animation
+            setupQueryAnimation();
+            updateQueryKeywords(query);
+        }
+
+        function calculateQueryPosition(query) {
+            const queryLower = query.toLowerCase();
+            const words = queryLower.split(' ');
+            
+            // Smart positioning based on semantic content
+            const positionMappings = {
+                'machine learning': [1.8, 0.8, 2.8],
+                'deep neural': [0.8, 2.8, 1.8],
+                'language nlp': [2.8, 1.8, 0.8],
+                'vision image': [-0.8, 1.8, 2.8],
+                'data analysis': [1.8, -0.8, 1.8],
+                'algorithm optimization': [-1.8, 0.8, -0.8]
+            };
+            
+            for (const [keywords, pos] of Object.entries(positionMappings)) {
+                if (keywords.split(' ').some(keyword => words.includes(keyword))) {
+                    return pos;
+                }
+            }
+            
+            // Default random position
+            return [
+                (Math.random() - 0.5) * 4,
+                (Math.random() - 0.5) * 4,
+                (Math.random() - 0.5) * 4
+            ];
+        }
+
+        function setupQueryAnimation() {
+            function animateQuery() {
+                if (!queryPoint) return;
+                
+                const time = Date.now() * 0.001;
+                
+                queryPoint.mesh.rotation.x += 0.02;
+                queryPoint.mesh.rotation.y += 0.03;
+                queryPoint.glowMesh.rotation.x -= 0.01;
+                queryPoint.glowMesh.rotation.y -= 0.02;
+                
+                // Floating text
+                queryPoint.textSprite.position.y = queryPoint.position[1] + 1 + Math.sin(time * 2) * 0.1;
+                
+                requestAnimationFrame(animateQuery);
+            }
+            
+            animateQuery();
+        }
+
+        // ===============================
+        // SIMILARITY CALCULATIONS
+        // ===============================
+        function calculateDocumentSimilarities() {
+            if (!queryPoint) return;
+            
+            const query = document.getElementById('queryInput').value.toLowerCase();
+            const queryWords = query.split(' ');
+            
+            documents.forEach(doc => {
+                // Calculate spatial distance
+                const distance = Math.sqrt(
+                    Math.pow(doc.mesh.position.x - queryPoint.position[0], 2) +
+                    Math.pow(doc.mesh.position.y - queryPoint.position[1], 2) +
+                    Math.pow(doc.mesh.position.z - queryPoint.position[2], 2)
+                );
+                
+                // Calculate keyword overlap
+                const keywordScore = doc.data.keywords.reduce((score, keyword) => {
+                    const matches = queryWords.filter(word => 
+                        keyword.toLowerCase().includes(word) || 
+                        word.includes(keyword.toLowerCase())
+                    ).length;
+                    return score + matches;
+                }, 0);
+                
+                // Combined similarity score
+                const spatialSimilarity = 1 / (1 + distance);
+                const semanticSimilarity = keywordScore * 0.3;
+                doc.similarity = spatialSimilarity + semanticSimilarity;
+            });
+            
+            // Sort by similarity
+            documents.sort((a, b) => b.similarity - a.similarity);
+        }
+
+        function highlightRelevantDocuments() {
+            const topDocuments = documents.slice(0, 3);
+            
+            topDocuments.forEach((doc, index) => {
+                setTimeout(() => {
+                    // Visual highlighting
+                    doc.mesh.material.emissive = new THREE.Color(CONFIG.colors.highlight);
+                    doc.glowMesh.material.opacity = 0.5;
+                    doc.titleSprite.material.opacity = 1;
+                    
+                    // Scale animation
+                    animateDocumentScale(doc, 1.5);
+                    
+                    // Highlight keywords
+                    doc.keywordGroup.children.forEach(keyword => {
+                        keyword.material.opacity = 1;
+                    });
+                    
+                }, index * 500);
+            });
+        }
+
+        function animateDocumentScale(doc, targetScale) {
+            const originalScale = doc.mesh.scale.clone();
+            const target = originalScale.clone().multiplyScalar(targetScale);
+            
+            const startTime = Date.now();
+            const duration = 500;
+            
+            function animate() {
+                const elapsed = Date.now() - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const easeProgress = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+                
+                doc.mesh.scale.lerpVectors(originalScale, target, easeProgress);
+                doc.glowMesh.scale.lerpVectors(originalScale, target, easeProgress);
+                
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                }
+            }
+            
+            animate();
+        }
+
+        // ===============================
+        // CONNECTION VISUALIZATION
+        // ===============================
+        function createConnectionVisualization() {
+            if (!queryPoint) return;
+            
+            const topDocuments = documents.slice(0, 3);
+            
+            topDocuments.forEach((doc, index) => {
+                setTimeout(() => {
+                    createConnectionLine(queryPoint.mesh.position, doc.mesh.position, index);
+                }, index * 300);
+            });
+        }
+
+        function createConnectionLine(start, end, colorIndex) {
+            const points = [
+                new THREE.Vector3(start.x, start.y, start.z),
+                new THREE.Vector3(end.x, end.y, end.z)
+            ];
+            
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            const material = new THREE.LineBasicMaterial({
+                color: CONFIG.colors.connections[colorIndex],
+                transparent: true,
+                opacity: 0.8,
+                linewidth: 3
+            });
+            
+            const line = new THREE.Line(geometry, material);
+            scene.add(line);
+            connectionLines.push(line);
+            
+            // Animate line opacity
+            animateLineOpacity(material);
+        }
+
+        function animateLineOpacity(material) {
+            let time = 0;
+            
+            function animate() {
+                time += 0.02;
+                material.opacity = Math.sin(time) * 0.3 + 0.7;
+                requestAnimationFrame(animate);
+            }
+            
+            animate();
+        }
+
+        // ===============================
+        // UI UPDATE FUNCTIONS
+        // ===============================
+        function setActiveStep(stepIndex) {
+            // Clear all step states
+            for (let i = 0; i <= 5; i++) {
+                const step = document.getElementById(`step-${i}`);
+                if (step) {
+                    step.classList.remove('active', 'completed');
+                }
+            }
+            
+            // Set completed steps
+            for (let i = 0; i < stepIndex; i++) {
+                const step = document.getElementById(`step-${i}`);
+                if (step) {
+                    step.classList.add('completed');
+                }
+            }
+            
+            // Set active step
+            if (stepIndex >= 0 && stepIndex <= 5) {
+                const activeStep = document.getElementById(`step-${stepIndex}`);
+                if (activeStep) {
+                    activeStep.classList.add('active');
+                }
+            } else if (stepIndex === -1) {
+                // Mark all as completed
+                for (let i = 0; i <= 5; i++) {
+                    const step = document.getElementById(`step-${i}`);
+                    if (step) {
+                        step.classList.add('completed');
+                    }
+                }
+            }
+        }
+
+        function updateSystemStatus(text, status = 'active') {
+            const statusDot = document.getElementById('systemStatus');
+            const statusText = document.getElementById('systemStatusText');
+            
+            statusDot.className = `status-dot ${status}`;
+            statusText.textContent = text;
+        }
+
+        function updateInfoPanel(text) {
+            document.getElementById('infoText').textContent = text;
+        }
+
+        function updateQueryKeywords(query) {
+            const words = query.toLowerCase().split(' ').filter(word => word.length > 2);
+            updateKeywordDisplay(words);
+        }
+
+        function updateKeywordDisplay(keywords = []) {
+            const container = document.getElementById('keywordTags');
+            container.innerHTML = '';
+            
+            if (keywords.length === 0) {
+                // Show all document keywords
+                const allKeywords = new Set();
+                DOCUMENT_DATA.forEach(doc => {
+                    doc.keywords.forEach(keyword => allKeywords.add(keyword));
+                });
+                keywords = Array.from(allKeywords).slice(0, 15); // Limit display
+            }
+            
+            keywords.forEach(keyword => {
+                const tag = document.createElement('span');
+                tag.className = 'word-tag';
+                tag.textContent = keyword;
+                container.appendChild(tag);
+            });
+        }
+
+        function displaySimilarityScores() {
+            const scoresContainer = document.getElementById('similarityScores');
+            const scoresList = document.getElementById('scoresList');
+            
+            scoresList.innerHTML = '';
+            
+            documents.slice(0, 3).forEach((doc, index) => {
+                const scoreItem = document.createElement('div');
+                scoreItem.style.cssText = 'margin: 5px 0; padding: 8px; background: rgba(255,255,255,0.05); border-radius: 5px; font-size: 12px;';
+                scoreItem.innerHTML = `
+                    <strong>${doc.data.title}</strong><br>
+                    <span style="color: #667eea;">Similarity: ${(doc.similarity * 100).toFixed(1)}%</span>
+                `;
+                scoresList.appendChild(scoreItem);
+            });
+            
+            scoresContainer.style.display = 'block';
+        }
+
+        // ===============================
+        // CONTROL FUNCTIONS
+        // ===============================
+        function resetVisualization() {
+            // Clear connections
+            connectionLines.forEach(line => scene.remove(line));
+            connectionLines = [];
+            
+            // Remove query
+            removeQueryVisualization();
+            
+            // Reset documents
+            documents.forEach(doc => {
+                doc.mesh.material.emissive = new THREE.Color(0x000000);
+                doc.glowMesh.material.opacity = 0.2;
+                doc.mesh.scale.set(1, 1, 1);
+                doc.glowMesh.scale.set(1, 1, 1);
+                doc.titleSprite.material.opacity = showTextLabels ? 0.8 : 0.3;
+                doc.keywordGroup.children.forEach(keyword => {
+                    keyword.material.opacity = showTextLabels ? 0.6 : 0.2;
+                });
+                doc.similarity = 0;
+            });
+            
+            // Reset UI
+            setActiveStep(-2); // Clear all steps
+            updateSystemStatus('Ready to start', 'active');
+            updateInfoPanel('Welcome to the RAG Vector Embedding Visualization! Documents exist as points in high-dimensional semantic space. Similar content naturally clusters together. Start the demo to see how your query navigates to find relevant information.');
+            updateKeywordDisplay();
+            
+            // Hide similarity scores
+            document.getElementById('similarityScores').style.display = 'none';
+        }
+
+        function removeQueryVisualization() {
+            if (queryPoint) {
+                scene.remove(queryPoint.mesh);
+                scene.remove(queryPoint.glowMesh);
+                scene.remove(queryPoint.textSprite);
+                queryPoint = null;
+            }
+        }
+
+        function toggleAutoRotate() {
+            isAutoRotating = !isAutoRotating;
+        }
+
+        function toggleTextLabels() {
+            showTextLabels = !showTextLabels;
+            
+            documents.forEach(doc => {
+                doc.titleSprite.material.opacity = showTextLabels ? 0.8 : 0.1;
+                doc.keywordGroup.children.forEach(keyword => {
+                    keyword.material.opacity = showTextLabels ? 0.6 : 0.1;
+                });
+            });
+        }
+
+        function nextStep() {
+            if (!demoRunning && currentStep === 0) {
+                startRagDemo();
+            } else if (demoRunning && currentStep < 5) {
+                currentStep++;
+                executeRagStep(currentStep);
+            }
+        }
+
+        function setupControls() {
+            // Mouse controls for camera
+            let mouseX = 0, mouseY = 0;
+            
+            document.addEventListener('mousemove', (event) => {
+                mouseX = (event.clientX / window.innerWidth) * 2 - 1;
+                mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
+                
+                if (!isAutoRotating) {
+                    camera.position.x = Math.sin(mouseX * Math.PI) * 8;
+                    camera.position.z = Math.cos(mouseX * Math.PI) * 8;
+                    camera.position.y = mouseY * 3 + 5;
+                    camera.lookAt(0, 0, 0);
+                }
+            });
+            
+            // Keyboard shortcuts
+            document.addEventListener('keydown', (event) => {
+                switch(event.key) {
+                    case 'Enter':
+                        if (!demoRunning) startRagDemo();
+                        break;
+                    case 'r':
+                    case 'R':
+                        resetVisualization();
+                        break;
+                    case 't':
+                    case 'T':
+                        toggleTextLabels();
+                        break;
+                    case ' ':
+                        event.preventDefault();
+                        toggleAutoRotate();
+                        break;
+                }
+            });
+        }
+
+        // ===============================
+        // ANIMATION LOOP
+        // ===============================
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Auto-rotation
+            if (isAutoRotating) {
+                const time = Date.now() * 0.0003;
+                camera.position.x = Math.sin(time) * 8;
+                camera.position.z = Math.cos(time) * 8;
+                camera.position.y = Math.sin(time * 0.5) * 2 + 5;
+                camera.lookAt(0, 0, 0);
+            }
+            
+            renderer.render(scene, camera);
+        }
+
+        // ===============================
+        // RESPONSIVE DESIGN
+        // ===============================
+        function handleResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        window.addEventListener('resize', handleResize);
+
+        // ===============================
+        // INITIALIZATION
+        // ===============================
+        window.addEventListener('load', () => {
+            initializeScene();
+            console.log('🎬 RAG Vector Visualization initialized successfully!');
+            console.log('Created by Himanshu Joshi © 2025');
+        });
+
+        // ===============================
+        // KEYBOARD SHORTCUTS INFO
+        // ===============================
+        console.log(`
+🎮 Keyboard Shortcuts:
+- Enter: Start RAG Demo
+- R: Reset Scene
+- T: Toggle Text Labels
+- Space: Toggle Auto-Rotate
+- Mouse: Control Camera
+
+🎬 Perfect for screen recording and educational content!
+        `);
+    </script>
+</body>
+</html>
