@@ -536,57 +536,57 @@
             { 
                 title: "Machine Learning Basics", 
                 content: "Fundamental concepts of AI and machine learning", 
-                keywords: ["machine", "learning", "AI", "algorithms", "training", "data", "models"],
-                color: 0xff6b6b, 
+                keywords: ["machine", "learning", "AI", "algorithms"],
+                color: 0xff4757, // Vibrant red
                 position: [2, 1, 3] 
             },
             { 
                 title: "Deep Learning Networks", 
                 content: "Neural networks and deep learning architectures", 
-                keywords: ["deep", "neural", "networks", "layers", "backprop", "GPU", "training"],
-                color: 0x4ecdc4, 
+                keywords: ["deep", "neural", "networks", "layers"],
+                color: 0x2ed573, // Vibrant green
                 position: [1, 3, 2] 
             },
             { 
                 title: "Natural Language Processing", 
                 content: "Text processing and language understanding", 
-                keywords: ["NLP", "text", "language", "sentiment", "tokenization", "BERT", "transformers"],
-                color: 0x45b7d1, 
+                keywords: ["NLP", "text", "language", "sentiment"],
+                color: 0x1e90ff, // Vibrant blue
                 position: [3, 2, 1] 
             },
             { 
                 title: "Computer Vision", 
                 content: "Image processing and visual recognition", 
-                keywords: ["vision", "image", "CNN", "detection", "recognition", "pixels", "opencv"],
-                color: 0x96ceb4, 
+                keywords: ["vision", "image", "CNN", "detection"],
+                color: 0xff6348, // Vibrant orange
                 position: [-1, 2, 3] 
             },
             { 
                 title: "Data Science", 
                 content: "Statistical analysis and data insights", 
-                keywords: ["data", "statistics", "analysis", "pandas", "visualization", "insights", "science"],
-                color: 0xfeca57, 
+                keywords: ["data", "statistics", "analysis", "pandas"],
+                color: 0x8e44ad, // Vibrant purple
                 position: [2, -1, 2] 
             },
             { 
                 title: "Algorithm Design", 
                 content: "Optimization and algorithmic thinking", 
-                keywords: ["algorithms", "optimization", "complexity", "sorting", "search", "efficiency", "design"],
-                color: 0xff9ff3, 
+                keywords: ["algorithms", "optimization", "complexity", "sorting"],
+                color: 0xe67e22, // Vibrant dark orange
                 position: [-2, 1, -1] 
             },
             { 
                 title: "Database Systems", 
                 content: "Data storage and retrieval systems", 
-                keywords: ["database", "SQL", "storage", "queries", "indexing", "ACID", "NoSQL"],
-                color: 0x54a0ff, 
+                keywords: ["database", "SQL", "storage", "queries"],
+                color: 0x00cec9, // Vibrant teal
                 position: [1, -2, -2] 
             },
             { 
                 title: "Software Engineering", 
                 content: "Development practices and methodologies", 
-                keywords: ["software", "engineering", "code", "testing", "deployment", "agile", "devops"],
-                color: 0x5f27cd, 
+                keywords: ["software", "engineering", "code", "testing"],
+                color: 0xfd79a8, // Vibrant pink
                 position: [-1, -1, 3] 
             }
         ];
@@ -626,38 +626,75 @@
         }
 
         function setupLighting() {
-            // Ambient lighting
-            const ambientLight = new THREE.AmbientLight(0x404040, 0.4);
+            // Brighter ambient lighting
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
             scene.add(ambientLight);
             
-            // Directional lighting
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            // Strong directional lighting
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
             directionalLight.position.set(10, 10, 5);
             directionalLight.castShadow = true;
             directionalLight.shadow.mapSize.width = 2048;
             directionalLight.shadow.mapSize.height = 2048;
             scene.add(directionalLight);
             
-            // Accent lighting
-            const pointLight1 = new THREE.PointLight(0x667eea, 0.6, 15);
+            // Accent lighting with proper intensity
+            const pointLight1 = new THREE.PointLight(0x667eea, 0.8, 20);
             pointLight1.position.set(5, 5, 5);
             scene.add(pointLight1);
             
-            const pointLight2 = new THREE.PointLight(0x764ba2, 0.6, 15);
+            const pointLight2 = new THREE.PointLight(0x764ba2, 0.8, 20);
             pointLight2.position.set(-5, -5, -5);
             scene.add(pointLight2);
         }
 
         function createEnvironment() {
-            // Grid helper
-            const gridHelper = new THREE.GridHelper(12, 12, 0x333333, 0x222222);
+            // Grid helper with white lines
+            const gridHelper = new THREE.GridHelper(12, 12, 0xffffff, 0x666666);
             gridHelper.position.y = -3;
+            gridHelper.material.opacity = 0.3;
+            gridHelper.material.transparent = true;
             scene.add(gridHelper);
             
-            // Coordinate axes
-            const axesHelper = new THREE.AxesHelper(5);
-            axesHelper.position.set(0, -2.8, 0);
-            scene.add(axesHelper);
+            // Create custom white axes instead of AxesHelper
+            const axesMaterial = new THREE.LineBasicMaterial({ color: 0xffffff });
+            
+            // X axis (red -> white)
+            const xGeometry = new THREE.BufferGeometry().setFromPoints([
+                new THREE.Vector3(0, -2.8, 0),
+                new THREE.Vector3(5, -2.8, 0)
+            ]);
+            const xAxis = new THREE.Line(xGeometry, axesMaterial);
+            scene.add(xAxis);
+            
+            // Y axis (green -> white)
+            const yGeometry = new THREE.BufferGeometry().setFromPoints([
+                new THREE.Vector3(0, -2.8, 0),
+                new THREE.Vector3(0, 2.2, 0)
+            ]);
+            const yAxis = new THREE.Line(yGeometry, axesMaterial);
+            scene.add(yAxis);
+            
+            // Z axis (blue -> white)
+            const zGeometry = new THREE.BufferGeometry().setFromPoints([
+                new THREE.Vector3(0, -2.8, 0),
+                new THREE.Vector3(0, -2.8, 5)
+            ]);
+            const zAxis = new THREE.Line(zGeometry, axesMaterial);
+            scene.add(zAxis);
+            
+            // Add axis labels
+            const xLabel = createTextSprite('X', 0xffffff, 16);
+            xLabel.position.set(5.2, -2.5, 0);
+            scene.add(xLabel);
+            
+            const yLabel = createTextSprite('Y', 0xffffff, 16);
+            yLabel.position.set(0, 2.5, 0);
+            scene.add(yLabel);
+            
+            const zLabel = createTextSprite('Z', 0xffffff, 16);
+            zLabel.position.set(0, -2.5, 5.2);
+            scene.add(zLabel);
         }
 
         // ===============================
@@ -676,35 +713,41 @@
         function createDocumentGroup(docData, index) {
             const group = new THREE.Group();
             
-            // Main sphere
+            // Main sphere with enhanced colors for better contrast
             const geometry = new THREE.SphereGeometry(0.3, 16, 16);
             const material = new THREE.MeshPhongMaterial({
                 color: docData.color,
                 shininess: 100,
                 transparent: true,
-                opacity: 0.8
+                opacity: 0.9
             });
             const mesh = new THREE.Mesh(geometry, material);
             mesh.position.set(...docData.position);
             mesh.castShadow = true;
             mesh.receiveShadow = true;
             
-            // Glow effect
+            // Enhanced glow effect
             const glowGeometry = new THREE.SphereGeometry(0.35, 16, 16);
             const glowMaterial = new THREE.MeshBasicMaterial({
                 color: docData.color,
                 transparent: true,
-                opacity: 0.2
+                opacity: 0.3
             });
             const glowMesh = new THREE.Mesh(glowGeometry, glowMaterial);
             glowMesh.position.copy(mesh.position);
             
-            // Text label
-            const titleSprite = createTextSprite(docData.title, docData.color, 24);
-            titleSprite.position.set(docData.position[0], docData.position[1] + 0.8, docData.position[2]);
+            // Text label positioned to avoid overlap
+            const titleSprite = createTextSprite(docData.title, docData.color, 28);
+            // Position title higher and with offset based on document index to avoid overlap
+            const titleOffset = index % 2 === 0 ? 1.2 : 1.6;
+            titleSprite.position.set(
+                docData.position[0], 
+                docData.position[1] + titleOffset, 
+                docData.position[2]
+            );
             
-            // Keyword cloud
-            const keywordGroup = createKeywordGroup(docData);
+            // Keyword cloud with better spacing
+            const keywordGroup = createKeywordGroup(docData, index);
             keywordGroup.position.set(...docData.position);
             
             group.add(mesh);
@@ -726,19 +769,28 @@
             };
         }
 
-        function createKeywordGroup(docData) {
+        function createKeywordGroup(docData, docIndex) {
             const group = new THREE.Group();
             
-            docData.keywords.forEach((keyword, index) => {
+            // Use fewer keywords to prevent overcrowding
+            const maxKeywords = 4;
+            const keywords = docData.keywords.slice(0, maxKeywords);
+            
+            keywords.forEach((keyword, index) => {
                 const sprite = createTextSprite(keyword, docData.color, 16);
-                const angle = (index / docData.keywords.length) * Math.PI * 2;
-                const radius = 1.2;
+                
+                // Arrange keywords in a circle around the document
+                const angle = (index / maxKeywords) * Math.PI * 2;
+                const radius = 1.5;
                 
                 sprite.position.set(
                     Math.cos(angle) * radius,
                     Math.sin(index * 0.5) * 0.3,
                     Math.sin(angle) * radius
                 );
+                
+                // Make keywords visible but not overwhelming
+                sprite.material.opacity = showTextLabels ? 0.7 : 0.2;
                 
                 group.add(sprite);
             });
@@ -968,33 +1020,34 @@
             
             const position = calculateQueryPosition(query);
             
-            // Create query geometry
+            // Create query geometry with brighter gold color
             const geometry = new THREE.OctahedronGeometry(0.4);
             const material = new THREE.MeshPhongMaterial({
-                color: CONFIG.colors.query,
+                color: 0xffd700, // Bright gold
                 shininess: 100,
                 transparent: true,
-                opacity: 0.9,
-                emissive: new THREE.Color(0x111100)
+                opacity: 0.95,
+                emissive: new THREE.Color(0x332200)
             });
             
             const mesh = new THREE.Mesh(geometry, material);
             mesh.position.set(...position);
             mesh.castShadow = true;
             
-            // Glow effect
-            const glowGeometry = new THREE.OctahedronGeometry(0.5);
+            // Enhanced glow effect
+            const glowGeometry = new THREE.OctahedronGeometry(0.6);
             const glowMaterial = new THREE.MeshBasicMaterial({
-                color: CONFIG.colors.query,
+                color: 0xffd700,
                 transparent: true,
-                opacity: 0.3
+                opacity: 0.4
             });
             const glowMesh = new THREE.Mesh(glowGeometry, glowMaterial);
             glowMesh.position.copy(mesh.position);
             
-            // Query text
-            const textSprite = createTextSprite(`"${query}"`, CONFIG.colors.query, 28);
-            textSprite.position.set(position[0], position[1] + 1, position[2]);
+            // Query text positioned to avoid overlap with documents
+            const textSprite = createTextSprite(`"${query}"`, 0xffd700, 32);
+            // Position query text higher but not too far
+            textSprite.position.set(position[0], position[1] + 1.5, position[2]);
             
             scene.add(mesh);
             scene.add(glowMesh);
@@ -1011,14 +1064,14 @@
             const queryLower = query.toLowerCase();
             const words = queryLower.split(' ');
             
-            // Smart positioning based on semantic content
+            // Smart positioning based on semantic content, with reasonable spacing
             const positionMappings = {
-                'machine learning': [1.8, 0.8, 2.8],
-                'deep neural': [0.8, 2.8, 1.8],
-                'language nlp': [2.8, 1.8, 0.8],
-                'vision image': [-0.8, 1.8, 2.8],
-                'data analysis': [1.8, -0.8, 1.8],
-                'algorithm optimization': [-1.8, 0.8, -0.8]
+                'machine learning': [2.2, 0.8, 3.2],
+                'deep neural': [0.8, 3.2, 2.2],
+                'language nlp': [3.2, 2.2, 0.8],
+                'vision image': [-0.8, 2.2, 3.2],
+                'data analysis': [2.2, -0.8, 2.2],
+                'algorithm optimization': [-2.2, 0.8, -0.8]
             };
             
             for (const [keywords, pos] of Object.entries(positionMappings)) {
@@ -1027,10 +1080,10 @@
                 }
             }
             
-            // Default random position
+            // Default position with reasonable spacing
             return [
                 (Math.random() - 0.5) * 4,
-                (Math.random() - 0.5) * 4,
+                Math.random() * 2 + 0.5,
                 (Math.random() - 0.5) * 4
             ];
         }
@@ -1046,8 +1099,8 @@
                 queryPoint.glowMesh.rotation.x -= 0.01;
                 queryPoint.glowMesh.rotation.y -= 0.02;
                 
-                // Floating text
-                queryPoint.textSprite.position.y = queryPoint.position[1] + 1 + Math.sin(time * 2) * 0.1;
+                // Floating text with proper positioning
+                queryPoint.textSprite.position.y = queryPoint.position[1] + 1.5 + Math.sin(time * 2) * 0.1;
                 
                 requestAnimationFrame(animateQuery);
             }
@@ -1293,12 +1346,12 @@
             // Reset documents
             documents.forEach(doc => {
                 doc.mesh.material.emissive = new THREE.Color(0x000000);
-                doc.glowMesh.material.opacity = 0.2;
+                doc.glowMesh.material.opacity = 0.3;
                 doc.mesh.scale.set(1, 1, 1);
                 doc.glowMesh.scale.set(1, 1, 1);
-                doc.titleSprite.material.opacity = showTextLabels ? 0.8 : 0.3;
+                doc.titleSprite.material.opacity = showTextLabels ? 0.95 : 0.2;
                 doc.keywordGroup.children.forEach(keyword => {
-                    keyword.material.opacity = showTextLabels ? 0.6 : 0.2;
+                    keyword.material.opacity = showTextLabels ? 0.7 : 0.15;
                 });
                 doc.similarity = 0;
             });
@@ -1330,11 +1383,15 @@
             showTextLabels = !showTextLabels;
             
             documents.forEach(doc => {
-                doc.titleSprite.material.opacity = showTextLabels ? 0.8 : 0.1;
+                doc.titleSprite.material.opacity = showTextLabels ? 0.95 : 0.2;
                 doc.keywordGroup.children.forEach(keyword => {
-                    keyword.material.opacity = showTextLabels ? 0.6 : 0.1;
+                    keyword.material.opacity = showTextLabels ? 0.7 : 0.15;
                 });
             });
+            
+            if (queryPoint) {
+                queryPoint.textSprite.material.opacity = showTextLabels ? 1.0 : 0.3;
+            }
         }
 
         function nextStep() {
@@ -1417,9 +1474,15 @@
         // INITIALIZATION
         // ===============================
         window.addEventListener('load', () => {
-            initializeScene();
-            console.log('🎬 RAG Vector Visualization initialized successfully!');
-            console.log('Created by Himanshu Joshi © 2025');
+            try {
+                initializeScene();
+                console.log('🎬 RAG Vector Visualization initialized successfully!');
+                console.log('Created by Himanshu Joshi © 2025');
+                console.log('📍 Camera position:', camera.position);
+                console.log('📊 Documents loaded:', documents.length);
+            } catch (error) {
+                console.error('❌ Error initializing visualization:', error);
+            }
         });
 
         // ===============================
@@ -1434,6 +1497,7 @@
 - Mouse: Control Camera
 
 🎬 Perfect for screen recording and educational content!
+📝 Enhanced text rendering for crystal-clear readability!
         `);
     </script>
 </body>
